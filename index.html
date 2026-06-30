@@ -17,32 +17,38 @@
   .card { background:var(--card); border-radius:14px; padding:16px 16px 18px;
           margin:0 0 16px; box-shadow:0 1px 4px rgba(0,0,0,.08); }
   .name { font-weight:600; font-size:16px; margin:0 0 2px; }
-  .dom { font-size:12px; color:var(--mut); font-family:ui-monospace,Menlo,Consolas,monospace; margin:0 0 10px; }
+  .dom { font-size:12px; color:var(--mut); font-family:ui-monospace,Menlo,Consolas,monospace; margin:0 0 10px; word-break:break-all; }
   audio { width:100%; display:block; }
-  .status { margin-top:12px; font-size:15px; font-weight:600; display:flex; align-items:center; gap:8px; }
-  .dot { width:12px; height:12px; border-radius:50%; flex:0 0 auto; background:#bbb; }
+  .status { margin-top:10px; font-size:14px; font-weight:600; display:flex; align-items:center; gap:7px; }
+  .dot { width:11px; height:11px; border-radius:50%; flex:0 0 auto; background:#bbb; }
   .s-wait .dot{ background:var(--wait); } .s-wait{ color:var(--wait); }
   .s-ok   .dot{ background:var(--ok);   } .s-ok  { color:var(--ok);   }
   .s-bad  .dot{ background:var(--bad);  } .s-bad { color:var(--bad);  }
   .s-play .dot{ background:var(--ok); animation:pulse 1s infinite; } .s-play{ color:var(--ok); }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+  .foot { color:var(--mut); font-size:13px; margin-top:22px; }
   .hint { background:#fff8e6; border:1px solid #f0e0a8; border-radius:10px;
-          padding:12px 14px; font-size:15px; margin:0 0 20px; }
+          padding:11px 13px; font-size:14px; margin:0 0 20px; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Проверка аудио</h1>
-  <p class="lead">Нажмите <b>▶</b>. Должна заиграть короткая повторяющаяся мелодия (≈1 мин). Напишите мне, <b>заиграло или нет</b>.</p>
-  <div class="hint"><b>Важно:</b> проверьте <b>без VPN</b>. Если не заиграло без VPN — включите VPN, проверьте ещё раз и тоже напишите. Укажите город и оператора/провайдера, если знаете.</div>
+  <h1>Проверка аудио — 3 варианта</h1>
+  <p class="lead">Один и тот же звук с <b>трёх разных адресов</b>. Нажмите <b>▶</b> на каждом и напишите мне, <b>какие из трёх заиграли</b> (по номеру), а какие нет.</p>
+  <div class="hint">Проверьте <b>без VPN</b>. Если что-то не заиграло — повторите <b>с VPN</b> и тоже напишите. Город и оператор связи, если знаете.</div>
 
   <div id="players"></div>
+  <p class="foot" id="legend"></p>
 </div>
 
 <script>
 const HOSTS = [
-  { id:"cdn", label:"Плеер", dom:"cdn.irenabio.com",
-    url:"https://cdn.irenabio.com/audio/test/test_audio.m4a?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=TN475UO7SRPAH9HHKXH2%2F20260630%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260630T092242Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=a5991cce66b75ce44893fbfe6b71e5a6f16d14f1b1ead65d122da518cee362ca" }
+  { id:"cdn",   label:"Вариант 1", dom:"cdn.irenabio.com",
+    url:"https://cdn.irenabio.com/audio/test/test_audio.m4a?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=TN475UO7SRPAH9HHKXH2%2F20260630%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260630T092242Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=a5991cce66b75ce44893fbfe6b71e5a6f16d14f1b1ead65d122da518cee362ca" },
+  { id:"sslip", label:"Вариант 2", dom:"38-180-206-236.sslip.io",
+    url:"https://38-180-206-236.sslip.io/audio/test/test_audio.m4a?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=TN475UO7SRPAH9HHKXH2%2F20260630%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260630T094147Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=d0df8179b4e6453e12875fdf83a9ef5959d64a566c40ae83eb78efa8c5f8b863" },
+  { id:"fb",    label:"Вариант 3", dom:"s3.filebase.com",
+    url:"https://s3.filebase.com/irenabio-audio-test/audio-test/test_audio.m4a?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=22CEF3C9079C54D0B268%2F20260630%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260630T094147Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=929c6928775f38d1839eb1b37aad792a4204cfb711c703e6bd57695408d44841" }
 ];
 const LOAD_TIMEOUT_MS = 18000;
 const playersEl = document.getElementById("players");
@@ -61,10 +67,10 @@ HOSTS.forEach(h => {
   const st = card.querySelector(".status");
   let settled = false;
   const timer = setTimeout(() => {
-    if (!settled) { settled = true; setStatus(st,"s-bad","Не загрузилось — недоступно из вашей сети"); }
+    if (!settled) { settled = true; setStatus(st,"s-bad","Не загрузилось — адрес недоступен из вашей сети"); }
   }, LOAD_TIMEOUT_MS);
   function ok(){ if(settled) return; settled = true; clearTimeout(timer); setStatus(st,"s-ok","Загрузилось, можно играть"); }
-  function bad(){ if(settled) return; settled = true; clearTimeout(timer); setStatus(st,"s-bad","Не загрузилось — недоступно из вашей сети"); }
+  function bad(){ if(settled) return; settled = true; clearTimeout(timer); setStatus(st,"s-bad","Не загрузилось — адрес недоступен из вашей сети"); }
   audio.addEventListener("canplay", ok);
   audio.addEventListener("loadeddata", ok);
   audio.addEventListener("error", bad);
@@ -72,6 +78,8 @@ HOSTS.forEach(h => {
   audio.addEventListener("pause", () => { if (st.classList.contains("s-play")) setStatus(st,"s-ok","Пауза (загрузилось)"); });
   audio.load();
 });
+document.getElementById("legend").textContent =
+  "Адреса: " + HOSTS.map(h => h.label.replace("Вариант","№")+" = "+h.dom).join(",  ");
 </script>
 </body>
 </html>
