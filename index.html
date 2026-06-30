@@ -12,11 +12,12 @@
          background:var(--bg); color:var(--ink); padding:18px; line-height:1.45; }
   .wrap { max-width:560px; margin:0 auto; }
   h1 { font-size:21px; margin:0 0 6px; }
-  .lead { color:var(--mut); font-size:15px; margin:0 0 20px; }
+  .lead { color:var(--mut); font-size:15px; margin:0 0 16px; }
   .lead b { color:var(--ink); }
   .card { background:var(--card); border-radius:14px; padding:16px 16px 18px;
           margin:0 0 16px; box-shadow:0 1px 4px rgba(0,0,0,.08); }
-  .name { font-weight:600; font-size:16px; margin:0 0 10px; }
+  .name { font-weight:600; font-size:16px; margin:0 0 2px; }
+  .dom { font-size:12px; color:var(--mut); font-family:ui-monospace,Menlo,Consolas,monospace; margin:0 0 10px; word-break:break-all; }
   audio { width:100%; display:block; }
   .status { margin-top:10px; font-size:14px; font-weight:600; display:flex; align-items:center; gap:7px; }
   .dot { width:11px; height:11px; border-radius:50%; flex:0 0 auto; background:#bbb; }
@@ -25,16 +26,16 @@
   .s-bad  .dot{ background:var(--bad);  } .s-bad { color:var(--bad);  }
   .s-play .dot{ background:var(--ok); animation:pulse 1s infinite; } .s-play{ color:var(--ok); }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
-  .foot { color:var(--mut); font-size:13px; margin-top:22px; text-align:center; }
+  .foot { color:var(--mut); font-size:13px; margin-top:22px; }
   .hint { background:#fff8e6; border:1px solid #f0e0a8; border-radius:10px;
           padding:11px 13px; font-size:14px; margin:0 0 20px; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Проверка аудио</h1>
-  <p class="lead">Нажмите <b>▶</b> на каждом плеере. Услышите короткую повторяющуюся мелодию (≈1 мин). Напишите мне, <b>какие плееры заиграли</b>, а какие нет.</p>
-  <div class="hint">Проверьте дважды: <b>с включённым VPN</b> и <b>без VPN</b>. Укажите оба результата.</div>
+  <h1>Проверка аудио — 3 варианта</h1>
+  <p class="lead">Ниже один и тот же звук, но загружается с <b>трёх разных адресов</b>. Нажмите <b>▶</b> на каждом и сообщите, <b>какие из трёх заиграли, а какие нет</b> (по номеру). Это поможет понять, какой адрес доступен у вашего провайдера.</p>
+  <div class="hint">Проверьте <b>без VPN</b>. Если что-то не заиграло — повторите <b>с VPN</b> и тоже напишите. Укажите город/провайдера, если знаете.</div>
 
   <div id="players"></div>
 
@@ -42,23 +43,28 @@
 </div>
 
 <script>
-// Add a host here = one line. Each {id,label,url}. url = pre-signed (short-lived) link.
+const CID = "QmbZEZXMMSwUwT2heb2CZT5PN14c8WxU1zyYgrp827koeP";
+// Same file, three different domains. Diagnostic: which domain reaches the tester.
 const HOSTS = [
-  { id:"filebase",  label:"Плеер 1",  host:"Filebase",  url:"https://s3.filebase.com/irenabio-audio-test/audio-test/test_audio.m4a?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=22CEF3C9079C54D0B268%2F20260630%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260630T072313Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=6bb7eae0e6ae9257637a57648bd89d1cd87c39ad193619bec48e48e8d43f66d1" }
-  // ,{ id:"servercore", label:"Плеер 2", host:"Servercore (Алматы)", url:"__SERVERCORE_URL__" }
+  { id:"s3",   label:"Вариант 1", dom:"s3.filebase.com",
+    url:"https://s3.filebase.com/irenabio-audio-test/audio-test/test_audio.m4a?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=22CEF3C9079C54D0B268%2F20260630%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260630T072313Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=6bb7eae0e6ae9257637a57648bd89d1cd87c39ad193619bec48e48e8d43f66d1" },
+  { id:"fbgw", label:"Вариант 2", dom:"ipfs.filebase.io",
+    url:"https://ipfs.filebase.io/ipfs/"+CID },
+  { id:"pub",  label:"Вариант 3", dom:"ipfs.io",
+    url:"https://ipfs.io/ipfs/"+CID }
 ];
 
 const LOAD_TIMEOUT_MS = 18000;
 const playersEl = document.getElementById("players");
-
 function setStatus(el, cls, text){ el.className = "status "+cls; el.querySelector(".txt").textContent = text; }
 
 HOSTS.forEach(h => {
-  if (!h.url || h.url.indexOf("__") === 0) return; // skip unfilled placeholders
+  if (!h.url || h.url.indexOf("__") === 0) return;
   const card = document.createElement("div");
   card.className = "card";
   card.innerHTML =
     '<div class="name">'+h.label+'</div>'+
+    '<div class="dom">'+h.dom+'</div>'+
     '<audio controls preload="auto" playsinline src="'+h.url+'"></audio>'+
     '<div class="status s-wait"><span class="dot"></span><span class="txt">Проверяем доступность…</span></div>';
   playersEl.appendChild(card);
@@ -66,29 +72,21 @@ HOSTS.forEach(h => {
   const audio = card.querySelector("audio");
   const st = card.querySelector(".status");
   let settled = false;
-
   const timer = setTimeout(() => {
-    if (!settled) { settled = true; setStatus(st,"s-bad","Не загрузился — хостинг недоступен из вашей сети"); }
+    if (!settled) { settled = true; setStatus(st,"s-bad","Не загрузился — адрес недоступен из вашей сети"); }
   }, LOAD_TIMEOUT_MS);
-
-  function ok(){ if(settled) return; settled = true; clearTimeout(timer);
-                 setStatus(st,"s-ok","Загрузился, можно играть"); }
-  function bad(){ if(settled) return; settled = true; clearTimeout(timer);
-                  setStatus(st,"s-bad","Не загрузился — хостинг недоступен из вашей сети"); }
-
+  function ok(){ if(settled) return; settled = true; clearTimeout(timer); setStatus(st,"s-ok","Загрузился, можно играть"); }
+  function bad(){ if(settled) return; settled = true; clearTimeout(timer); setStatus(st,"s-bad","Не загрузился — адрес недоступен из вашей сети"); }
   audio.addEventListener("canplay", ok);
   audio.addEventListener("loadeddata", ok);
   audio.addEventListener("error", bad);
-  audio.addEventListener("stalled", () => { /* keep waiting until timeout */ });
-  audio.addEventListener("playing", () => { clearTimeout(timer); settled = true;
-                                            setStatus(st,"s-play","Играет"); });
-  audio.addEventListener("pause", () => { if (st.classList.contains("s-play"))
-                                            setStatus(st,"s-ok","Пауза (загрузился)"); });
+  audio.addEventListener("playing", () => { clearTimeout(timer); settled = true; setStatus(st,"s-play","Играет"); });
+  audio.addEventListener("pause", () => { if (st.classList.contains("s-play")) setStatus(st,"s-ok","Пауза (загрузился)"); });
   audio.load();
 });
 
 document.getElementById("legend").textContent =
-  "Хостинги: " + HOSTS.map(h => h.label.replace("Плеер","№")+" = "+h.host).join(",  ");
+  "Адреса: " + HOSTS.map(h => h.label.replace("Вариант","№")+" = "+h.dom).join(",  ");
 </script>
 </body>
 </html>
