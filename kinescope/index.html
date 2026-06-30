@@ -72,9 +72,13 @@ window.onKinescopeIframeAPIReady = function(factory){
     url: "https://kinescope.io/626uqHGNsTRZZ2Kjhg16NB",
     size: { width: "100%", height: "100%" }
   }).then(function(player){
-    player.on(player.Events.Loaded,  kOk);
+    // create() resolved => Kinescope reachable and player bootstrapped.
+    // Loaded/Ready may have already fired before listeners attach (race),
+    // so confirm reachable unless an Error (e.g. domain-restriction) arrives shortly.
+    var errored = false;
+    player.on(player.Events.Error,   function(){ errored = true; kBad(); });
     player.on(player.Events.Playing, function(){ clearTimeout(kTimer); kSettled = true; setStatus(kEl,"s-play","Играет"); });
-    player.on(player.Events.Error,   kBad);
+    setTimeout(function(){ if (!errored) kOk(); }, 2500);
   }).catch(kBad);
 };
 (function(){
