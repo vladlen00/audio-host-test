@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Тест видео и аудио</title>
+<style>
+  :root { --ok:#1c8a4a; --bad:#c0322b; --wait:#8a6d1c; --bg:#f5f3ef; --card:#fff; --ink:#222; --mut:#666; }
+  * { box-sizing:border-box; -webkit-text-size-adjust:100%; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+         background:var(--bg); color:var(--ink); padding:18px; line-height:1.45; }
+  .wrap { max-width:560px; margin:0 auto; }
+  h1 { font-size:21px; margin:0 0 6px; }
+  .lead { color:var(--mut); font-size:15px; margin:0 0 16px; }
+  .lead b { color:var(--ink); }
+  .card { background:var(--card); border-radius:14px; padding:16px; margin:0 0 16px;
+          box-shadow:0 1px 4px rgba(0,0,0,.08); }
+  .name { font-weight:600; font-size:16px; margin:0 0 2px; }
+  .dom { font-size:12px; color:var(--mut); font-family:ui-monospace,Menlo,Consolas,monospace; margin:0 0 10px; word-break:break-all; }
+  .vbox { position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:8px; overflow:hidden; }
+  .vbox > div, .vbox iframe { position:absolute; inset:0; width:100%!important; height:100%!important; border:0; }
+  audio { width:100%; display:block; }
+  .status { margin-top:10px; font-size:14px; font-weight:600; display:flex; align-items:center; gap:7px; }
+  .dot { width:11px; height:11px; border-radius:50%; flex:0 0 auto; background:#bbb; }
+  .s-wait .dot{ background:var(--wait); } .s-wait{ color:var(--wait); }
+  .s-ok   .dot{ background:var(--ok);   } .s-ok  { color:var(--ok);   }
+  .s-bad  .dot{ background:var(--bad);  } .s-bad { color:var(--bad);  }
+  .s-play .dot{ background:var(--ok); animation:pulse 1s infinite; } .s-play{ color:var(--ok); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+  .hint { background:#fff8e6; border:1px solid #f0e0a8; border-radius:10px;
+          padding:12px 14px; font-size:14px; margin:0 0 20px; }
+  .tag { display:inline-block; font-size:12px; font-weight:600; padding:2px 8px; border-radius:6px; margin-left:6px; vertical-align:middle; }
+  .tag-ru { background:#e7f1ff; color:#2b5dc0; } .tag-x { background:#fdeaea; color:#c0322b; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Проверка видео и аудио</h1>
+  <p class="lead">Два проигрывателя. Нажмите <b>▶</b> на каждом и напишите, <b>что заиграло, а что нет</b> (видео / звук).</p>
+  <div class="hint"><b>Проверьте без VPN.</b> Если что-то не пошло — включите VPN, обновите страницу, проверьте ещё раз и тоже напишите. Город и оператор связи, если знаете.</div>
+
+  <div class="card">
+    <div class="name">1) Видео-тренировка <span class="tag tag-ru">российский хостинг</span></div>
+    <div class="dom">kinescope.io</div>
+    <div class="vbox"><div id="kplayer"></div></div>
+    <div id="kstatus" class="status s-wait"><span class="dot"></span><span class="txt">Проверяем доступность…</span></div>
+  </div>
+
+  <div class="card">
+    <div class="name">2) Аудио <span class="tag tag-x">зарубежный хостинг</span></div>
+    <div class="dom">cdn.irenabio.com</div>
+    <audio id="audio" controls preload="auto" playsinline src="https://cdn.irenabio.com/audio/test/test_audio.m4a?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=TN475UO7SRPAH9HHKXH2%2F20260630%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260630T100614Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&X-Amz-Signature=918155f1c7273b90afd058284862e64c581721cee0b3a61a4596e6f059e79591"></audio>
+    <div id="astatus" class="status s-wait"><span class="dot"></span><span class="txt">Проверяем доступность…</span></div>
+  </div>
+</div>
+
+<script>
+function setStatus(el, cls, text){ el.className = "status "+cls; el.querySelector(".txt").textContent = text; }
+
+/* ---- 1) Kinescope (RF host) via official IFrame Player API ---- */
+const kEl = document.getElementById("kstatus");
+let kSettled = false;
+const kTimer = setTimeout(() => {
+  if (!kSettled){ kSettled = true; setStatus(kEl,"s-bad","Не загрузилось — Kinescope недоступен из вашей сети"); }
+}, 18000);
+function kOk(){ if(kSettled) return; kSettled = true; clearTimeout(kTimer); setStatus(kEl,"s-ok","Загрузилось, можно играть"); }
+function kBad(){ if(kSettled) return; kSettled = true; clearTimeout(kTimer); setStatus(kEl,"s-bad","Не загрузилось — Kinescope недоступен/ошибка"); }
+
+window.onKinescopeIframeAPIReady = function(factory){
+  factory.create("kplayer", {
+    url: "https://kinescope.io/626uqHGNsTRZZ2Kjhg16NB",
+    size: { width: "100%", height: "100%" }
+  }).then(function(player){
+    player.on(player.Events.Loaded,  kOk);
+    player.on(player.Events.Playing, function(){ clearTimeout(kTimer); kSettled = true; setStatus(kEl,"s-play","Играет"); });
+    player.on(player.Events.Error,   kBad);
+  }).catch(kBad);
+};
+(function(){
+  var tag = document.createElement("script");
+  tag.src = "https://player.kinescope.io/latest/iframe.player.js";
+  tag.onerror = kBad; // script host blocked -> immediate fail
+  document.head.appendChild(tag);
+})();
+
+/* ---- 2) cdn.irenabio.com audio (foreign host) ---- */
+const audio = document.getElementById("audio");
+const aEl = document.getElementById("astatus");
+let aSettled = false;
+const aTimer = setTimeout(() => {
+  if (!aSettled){ aSettled = true; setStatus(aEl,"s-bad","Не загрузилось — адрес недоступен из вашей сети"); }
+}, 18000);
+function aOk(){ if(aSettled) return; aSettled = true; clearTimeout(aTimer); setStatus(aEl,"s-ok","Загрузилось, можно играть"); }
+function aBad(){ if(aSettled) return; aSettled = true; clearTimeout(aTimer); setStatus(aEl,"s-bad","Не загрузилось — адрес недоступен из вашей сети"); }
+audio.addEventListener("canplay", aOk);
+audio.addEventListener("loadeddata", aOk);
+audio.addEventListener("error", aBad);
+audio.addEventListener("playing", () => { clearTimeout(aTimer); aSettled = true; setStatus(aEl,"s-play","Играет"); });
+audio.addEventListener("pause", () => { if (aEl.classList.contains("s-play")) setStatus(aEl,"s-ok","Пауза (загрузилось)"); });
+audio.load();
+</script>
+</body>
+</html>
