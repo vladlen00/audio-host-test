@@ -28,14 +28,23 @@
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
   .foot { color:var(--mut); font-size:13px; margin-top:22px; }
   .hint { background:#fff8e6; border:1px solid #f0e0a8; border-radius:10px;
-          padding:11px 13px; font-size:14px; margin:0 0 20px; }
+          padding:12px 14px; font-size:14px; margin:0 0 20px; }
+  .hint ol { margin:8px 0 0; padding-left:20px; }
+  .hint li { margin:4px 0; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Проверка аудио — 3 варианта</h1>
-  <p class="lead">Один и тот же звук с <b>трёх разных адресов</b>. Нажмите <b>▶</b> на каждом и напишите мне, <b>какие из трёх заиграли</b> (по номеру), а какие нет.</p>
-  <div class="hint">Проверьте <b>без VPN</b>. Если что-то не заиграло — повторите <b>с VPN</b> и тоже напишите. Город и оператор связи, если знаете.</div>
+  <p class="lead">Один и тот же звук с <b>трёх разных адресов</b>. На каждом нажмите <b>▶</b>.</p>
+  <div class="hint">
+    <b>Нужны ДВА захода — это важно:</b>
+    <ol>
+      <li><b>Заход 1 — VPN ПОЛНОСТЬЮ ВЫКЛЮЧЕН.</b> Проверьте, что VPN выключен, нажмите ▶ на всех трёх, запишите какие заиграли (по номеру).</li>
+      <li><b>Заход 2 — VPN ВКЛЮЧЁН.</b> Включите VPN, обновите страницу, снова ▶ на всех трёх, запишите.</li>
+    </ol>
+    Пришлите мне <b>оба</b> результата с пометкой VPN вкл/выкл. Город и оператор связи, если знаете.
+  </div>
 
   <div id="players"></div>
   <p class="foot" id="legend"></p>
@@ -43,12 +52,9 @@
 
 <script>
 const HOSTS = [
-  { id:"cdn",   label:"Вариант 1", dom:"cdn.irenabio.com",
-    url:"https://cdn.irenabio.com/audio/test/test_audio.m4a?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=TN475UO7SRPAH9HHKXH2%2F20260630%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260630T092242Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=a5991cce66b75ce44893fbfe6b71e5a6f16d14f1b1ead65d122da518cee362ca" },
-  { id:"sslip", label:"Вариант 2", dom:"38-180-206-236.sslip.io",
-    url:"https://38-180-206-236.sslip.io/audio/test/test_audio.m4a?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=TN475UO7SRPAH9HHKXH2%2F20260630%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260630T094147Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=d0df8179b4e6453e12875fdf83a9ef5959d64a566c40ae83eb78efa8c5f8b863" },
-  { id:"fb",    label:"Вариант 3", dom:"s3.filebase.com",
-    url:"https://s3.filebase.com/irenabio-audio-test/audio-test/test_audio.m4a?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=22CEF3C9079C54D0B268%2F20260630%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260630T094147Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=929c6928775f38d1839eb1b37aad792a4204cfb711c703e6bd57695408d44841" }
+  { id:"cdn",   label:"Вариант 1", dom:"cdn.irenabio.com",        url:"https://cdn.irenabio.com/audio/test/test_audio.m4a?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=TN475UO7SRPAH9HHKXH2%2F20260630%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260630T100614Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&X-Amz-Signature=918155f1c7273b90afd058284862e64c581721cee0b3a61a4596e6f059e79591" },
+  { id:"sslip", label:"Вариант 2", dom:"38-180-206-236.sslip.io", url:"https://38-180-206-236.sslip.io/audio/test/test_audio.m4a?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=TN475UO7SRPAH9HHKXH2%2F20260630%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260630T100614Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&X-Amz-Signature=43060dbce1266b9c62f5fad919508305a62e1cabeff6650dd4f13ca7f9bd0986" },
+  { id:"fb",    label:"Вариант 3", dom:"s3.filebase.com",         url:"https://s3.filebase.com/irenabio-audio-test/audio-test/test_audio.m4a?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=22CEF3C9079C54D0B268%2F20260630%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260630T100614Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&X-Amz-Signature=9872d0a5cee7603bdf2b204b135e6e5f6ee942d5e18f74db7ffeaf92c01c972a" }
 ];
 const LOAD_TIMEOUT_MS = 18000;
 const playersEl = document.getElementById("players");
